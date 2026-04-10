@@ -11,9 +11,15 @@ import uuid
 import joblib
 import numpy as np
 import pandas as pd
+from dotenv import load_dotenv
+
+# Load environment variables before importing services
+load_dotenv()
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sklearn.linear_model import LinearRegression
+from services.chatbot_service import chat as ai_chat
 
 app = Flask(__name__)
 CORS(app)
@@ -44,28 +50,40 @@ def train_ml_model():
         df = df[["temperature", "humidity", "rainfall", "label"]]
         df = df[df["label"].isin(CROP_MAP.keys())]
         
-        # 3. Feature Engineering
+        # 3. Factor Definitions (Multiplicative Strategy)
+        CROP_FACTORS = {"rice": 1.1, "wheat": 1.0, "maize": 1.1, "soybean": 1.3}
+        FERT_FACTORS = {1: 1.25, 0: 0.8}   # 1=Organic, 0=Chemical
+        WATER_FACTORS = {1: 1.15, 0: 0.85} # 1=Irrigation, 0=Rain-fed
+
+        # 4. Feature Engineering
         df["crop_id"] = df["label"].map(CROP_MAP)
-        df["fertilizer"] = df["humidity"].apply(lambda x: 1 if x > 60 else 0)
-        df["water"] = df["rainfall"].apply(lambda x: 1 if x > 100 else 0)
+        df["fertilizer_id"] = df["humidity"].apply(lambda x: 1 if x > 60 else 0)
+        df["water_id"] = df["rainfall"].apply(lambda x: 1 if x > 100 else 0)
         
-        # 4. Target Engineering (Realistic Overhaul)
-        # Formula: (0.25*temp + 0.25*hum + 0.25*rain + 10*fert + 8*water + 5*crop)
+        # 5. Target Engineering (Multiplicative Model)
+        # Sequestration Model: Base environmental potential
+        df["sequestration"] = (df["temperature"] * 0.3 + df["humidity"] * 0.3 + df["rainfall"] * 0.4)
+        
+        # Factor Interaction
+        df["crop_factor"] = df["label"].map(CROP_FACTORS)
+        df["fert_factor"] = df["fertilizer_id"].map(FERT_FACTORS)
+        df["water_factor"] = df["water_id"].map(WATER_FACTORS)
+        
+        # Multiplicative Score: carbon_score = sequestration * factors
         df["raw_score"] = (
-            0.25 * df["temperature"] + 
-            0.25 * df["humidity"] + 
-            0.25 * df["rainfall"] + 
-            10 * df["fertilizer"] + 
-            8 * df["water"] + 
-            5 * df["crop_id"]
+            df["sequestration"] * 
+            df["crop_factor"] * 
+            df["fert_factor"] * 
+            df["water_factor"]
         )
         
         # Normalize to 0-100
-        max_score = df["raw_score"].max()
-        df["carbon_score"] = (df["raw_score"] / max_score) * 100
+        min_s = df["raw_score"].min()
+        max_s = df["raw_score"].max()
+        df["carbon_score"] = ((df["raw_score"] - min_s) / (max_s - min_s)) * 100
         
         # 5. Train Model
-        X = df[["temperature", "humidity", "rainfall", "crop_id", "fertilizer", "water"]]
+        X = df[["temperature", "humidity", "rainfall", "crop_id", "fertilizer_id", "water_id"]]
         y = df["carbon_score"]
         
         model = LinearRegression()
@@ -252,11 +270,22 @@ def simulate():
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.get_json(force=True, silent=True) or {}
-    msg = data.get("message", "").lower()
-    reply = "I am Verdantix AI. Ask me about crop suitability or carbon credits."
-    if "soil" in msg: reply = "Soil health is key to maximizing carbon credits."
-    return api_response(data={"reply": reply})
+    """AI Chatbot Route — Connected to Groq/OpenAI."""
+    rid = get_request_id()
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        msg = data.get("message", "")
+        context = data.get("context", {}) # Optional farm context
+        history = data.get("history", []) # Optional chat history
+        
+        if not msg:
+            return api_response(error="Message is empty", success=False, code=400, rid=rid)
+            
+        # Call the unified chatbot service
+        res = ai_chat(message=msg, context=context, history=history)
+        return api_response(data=res, rid=rid)
+    except Exception as e:
+        return api_response(error=str(e), success=False, code=500, rid=rid)
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
@@ -291,4 +320,4 @@ def health():
     return api_response(data={"status": "running", "ml_active": MODEL_PATH in os.listdir(".")})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    app.run(host="127.0.0.1", port=5100, debug=False, use_reloader=False)
