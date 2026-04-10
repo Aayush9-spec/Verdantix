@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/🌱-EarthLedger_Agro-22c55e?style=for-the-badge&labelColor=0d1117&logoColor=white" alt="Verdantix" height="40"/>
+  <img src="" alt="Verdantix" height="40"/>
 </p>
 
 <h1 align="center">Verdantix</h1>
