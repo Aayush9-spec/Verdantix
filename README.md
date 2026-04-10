@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/🌱-EarthLedger_Agro-22c55e?style=for-the-badge&labelColor=0d1117&logoColor=white" alt="EarthLedger Agro" height="40"/>
+  <img src="https://img.shields.io/badge/🌱-EarthLedger_Agro-22c55e?style=for-the-badge&labelColor=0d1117&logoColor=white" alt="Verdantix" height="40"/>
 </p>
 
-<h1 align="center">EarthLedger Agro</h1>
+<h1 align="center">Verdantix</h1>
 <h3 align="center">🧠 AI-Powered Carbon Intelligence for Indian Farmers</h3>
 
 <p align="center">
