@@ -1,5 +1,5 @@
 # =============================================================================
-# EarthLedger Agro – Kaggle-Grounded ML Carbon Intelligence Platform
+# Verdantix – Kaggle-Grounded ML Carbon Intelligence Platform
 # Production-Ready Flask Backend | Version 5.0.0
 # =============================================================================
 
@@ -49,13 +49,20 @@ def train_ml_model():
         df["fertilizer"] = df["humidity"].apply(lambda x: 1 if x > 60 else 0)
         df["water"] = df["rainfall"].apply(lambda x: 1 if x > 100 else 0)
         
-        # 4. Target Engineering
-        # Formula: (0.3 * crop + 0.3 * fertilizer + 0.4 * water) * 30
-        df["carbon_score"] = (
-            0.3 * df["crop_id"] + 
-            0.3 * df["fertilizer"] + 
-            0.4 * df["water"]
-        ) * 30
+        # 4. Target Engineering (Realistic Overhaul)
+        # Formula: (0.25*temp + 0.25*hum + 0.25*rain + 10*fert + 8*water + 5*crop)
+        df["raw_score"] = (
+            0.25 * df["temperature"] + 
+            0.25 * df["humidity"] + 
+            0.25 * df["rainfall"] + 
+            10 * df["fertilizer"] + 
+            8 * df["water"] + 
+            5 * df["crop_id"]
+        )
+        
+        # Normalize to 0-100
+        max_score = df["raw_score"].max()
+        df["carbon_score"] = (df["raw_score"] / max_score) * 100
         
         # 5. Train Model
         X = df[["temperature", "humidity", "rainfall", "crop_id", "fertilizer", "water"]]
@@ -63,6 +70,11 @@ def train_ml_model():
         
         model = LinearRegression()
         model.fit(X, y)
+        
+        # 6. Generate Trained Dataset
+        df["predicted_score"] = model.predict(X)
+        df.to_csv("trained_data.csv", index=False)
+        print("✅ trained_data.csv generated")
         
         bundle = {
             "model": model,
@@ -125,9 +137,7 @@ def get_weather_data_mock(lat, lon):
     }
 
 def predict_ml_carbon(land, crop, fertilizer_type, water_type, lat, lon, user_temp=None, user_hum=None, user_rain=None):
-    """Inference engine with weather auto-fill and grounded ML prediction."""
-    rid = get_request_id()
-    
+    """Refined inference engine with environmental weighting and dynamic insights."""
     # 1. Weather Auto-Fill
     weather_used = None
     if user_temp is None or user_hum is None or user_rain is None:
@@ -141,21 +151,29 @@ def predict_ml_carbon(land, crop, fertilizer_type, water_type, lat, lon, user_te
 
     # 2. Feature Encoding
     c_id = CROP_MAP.get(crop.lower().strip(), 0)
-    f_id = 1 if fertilizer_type.lower() == "organic" else 0
-    w_id = 1 if water_type.lower() == "irrigation" else 0
+    f_id = 1 if fertilizer_type.lower().strip() == "organic" else 0
+    w_id = 1 if water_type.lower().strip() == "irrigation" else 0
     
     features = [[temp, hum, rain, c_id, f_id, w_id]]
     
-    # 3. ML Prediction
+    # 3. ML Prediction (Normalized 0-100)
     model = ML_BUNDLE["model"]
     prediction = model.predict(features)[0]
-    
-    # 4. Normalization and Classification
     carbon_score = round(clamp(prediction, 0, 100), 1)
-    credits = round((float(land) * 0.8) * (carbon_score / 100), 2)
     
+    # 4. Grading
     grade = "A" if carbon_score >= 75 else "B" if carbon_score >= 50 else "C"
     colors = {"A": "#22c55e", "B": "#f59e0b", "C": "#ef4444"}
+    
+    # 5. Dynamic AI Insight Generation
+    if f_id == 1:
+        insight = "Organic fertilizer improved carbon efficiency and soil health."
+    elif rain < 50:
+        insight = "Low rainfall detected; moisture stress reduced carbon sequestration potential."
+    else:
+        insight = "Balanced environmental factors supporting steady carbon sequestration."
+
+    credits = round((float(land) * 0.8) * (carbon_score / 100), 2)
     
     return {
         "carbon_score": carbon_score,
@@ -163,6 +181,7 @@ def predict_ml_carbon(land, crop, fertilizer_type, water_type, lat, lon, user_te
         "grade_color": colors[grade],
         "estimated_value_inr": round(credits * 850, 2),
         "weather_used": weather_used,
+        "insight": insight,
         "ml_metadata": ML_BUNDLE["metadata"]
     }
 
@@ -182,7 +201,7 @@ def validate_input(data):
 
 @app.route("/")
 def home():
-    return api_response(data={"message": "🌱 EarthLedger Agro Kaggle-ML Backend Running", "version": VERSION})
+    return api_response(data={"message": "🌱 Verdantix Kaggle-ML Backend Running", "version": VERSION})
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -235,13 +254,26 @@ def simulate():
 def chat():
     data = request.get_json(force=True, silent=True) or {}
     msg = data.get("message", "").lower()
-    reply = "I am EarthLedger AI. Ask me about crop suitability or carbon credits."
+    reply = "I am Verdantix AI. Ask me about crop suitability or carbon credits."
     if "soil" in msg: reply = "Soil health is key to maximizing carbon credits."
     return api_response(data={"reply": reply})
 
 @app.route("/dashboard", methods=["GET"])
 def dashboard():
     return api_response(data={"summary": {"total_credits": 150.5, "avg_score": 82.3}})
+
+@app.route("/trained-data", methods=["GET"])
+def get_trained_data():
+    """Returns sample rows from the trained_data.csv artifact."""
+    try:
+        if not os.path.exists("trained_data.csv"):
+            return api_response(error="Trained data artifact not found. Please trigger training first.", success=False, code=404)
+        
+        df = pd.read_csv("trained_data.csv")
+        sample = df.head(20).to_dict(orient="records")
+        return api_response(data={"sample": sample, "total_rows": len(df)})
+    except Exception as e:
+        return api_response(error=str(e), success=False, code=500)
 
 @app.route("/sync", methods=["POST"])
 def sync():
