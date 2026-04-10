@@ -1,6 +1,15 @@
+# ── Core ──────────────────────────────────────
 flask
 flask-cors
-requests
-groq
-python-dotenv
 flask-sqlalchemy
+python-dotenv
+requests
+
+# ── ML Pipeline ──────────────────────────────
+scikit-learn
+numpy
+joblib
+
+# ── AI / LLM ─────────────────────────────────
+groq
+openai
