@@ -25,8 +25,10 @@ app = Flask(__name__)
 CORS(app)
 
 VERSION = "5.0.0"
-DATA_PATH = "data.csv"
-MODEL_PATH = "model.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_PATH = os.path.join(BASE_DIR, "data.csv")
+MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
+TRAINED_DATA_PATH = os.path.join(BASE_DIR, "trained_data.csv")
 
 # =============================================================================
 # ML PIPELINE: KAGGLE DATA & TRAINING
@@ -91,7 +93,7 @@ def train_ml_model():
         
         # 6. Generate Trained Dataset
         df["predicted_score"] = model.predict(X)
-        df.to_csv("trained_data.csv", index=False)
+        df.to_csv(TRAINED_DATA_PATH, index=False)
         print("✅ trained_data.csv generated")
         
         bundle = {
@@ -295,10 +297,10 @@ def dashboard():
 def get_trained_data():
     """Returns sample rows from the trained_data.csv artifact."""
     try:
-        if not os.path.exists("trained_data.csv"):
+        if not os.path.exists(TRAINED_DATA_PATH):
             return api_response(error="Trained data artifact not found. Please trigger training first.", success=False, code=404)
         
-        df = pd.read_csv("trained_data.csv")
+        df = pd.read_csv(TRAINED_DATA_PATH)
         sample = df.head(20).to_dict(orient="records")
         return api_response(data={"sample": sample, "total_rows": len(df)})
     except Exception as e:
