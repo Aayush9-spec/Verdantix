@@ -1,8 +1,12 @@
 import React from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
 import Navbar from './Navbar';
 
 const Layout = ({ children }) => {
+  const location = useLocation();
+  const isHome = location.pathname === '/';
+
   return (
     <div className="min-h-screen relative flex flex-col overflow-x-hidden selection:bg-primary/30 selection:text-white">
       {/* Premium Global Background Architecture */}
@@ -40,7 +44,7 @@ const Layout = ({ children }) => {
 
       <Navbar />
       
-      <main className="flex-grow relative z-10 w-full">
+      <main className={`flex-grow relative z-10 w-full ${isHome ? 'pt-0' : 'pt-32 lg:pt-36'}`}>
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}

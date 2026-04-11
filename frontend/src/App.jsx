@@ -15,7 +15,6 @@ const Optimize = lazy(() => import('./pages/Optimize'));
 const Weather = lazy(() => import('./pages/Weather'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Simulate = lazy(() => import('./pages/Simulate'));
 const Auth = lazy(() => import('./pages/Auth'));
 
 function AnimatedRoutes() {
@@ -70,7 +69,6 @@ function AnimatedRoutes() {
             <Route path="/weather" element={<SignedIn><Weather /></SignedIn>} />
             <Route path="/chat" element={<SignedIn><Chat /></SignedIn>} />
             <Route path="/dashboard" element={<SignedIn><Dashboard /></SignedIn>} />
-            <Route path="/simulate" element={<SignedIn><Simulate /></SignedIn>} />
 
             {/* Redirect unauthenticated users trying to access protected routes */}
             <Route 

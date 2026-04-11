@@ -10,8 +10,10 @@ import {
   Layers, 
   Sparkles,
   ArrowRight,
-  Info
+  Info,
+  Navigation
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { apiFetch } from '../api/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -30,8 +32,24 @@ const Predict = () => {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
+    requestGPS();
     fetchHistory();
   }, []);
+
+  const requestGPS = () => {
+    if ("geolocation" in navigator) {
+      toast.loading(" Pinpointing Field GPS...", { id: 'gps-predict' });
+      navigator.geolocation.getCurrentPosition((position) => {
+        setFormData(prev => ({
+          ...prev,
+          location: { lat: position.coords.latitude, lon: position.coords.longitude }
+        }));
+        toast.success("Field Coordinates Synchronized", { id: 'gps-predict' });
+      }, (err) => {
+        toast.error("Using Default Regional Coordinates", { id: 'gps-predict' });
+      });
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -156,21 +174,31 @@ const Predict = () => {
               ]}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-2xl bg-white/5 border border-white/5">
-              <Input 
-                label="Latitude" 
-                type="number" 
-                step="0.01"
-                value={formData.location.lat}
-                onChange={(e) => setFormData({...formData, location: {...formData.location, lat: parseFloat(e.target.value)}})}
-              />
-              <Input 
-                label="Longitude" 
-                type="number" 
-                step="0.01"
-                value={formData.location.lon}
-                onChange={(e) => setFormData({...formData, location: {...formData.location, lon: parseFloat(e.target.value)}})}
-              />
+            <div className="space-y-4 p-4 rounded-2xl bg-white/5 border border-white/5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input 
+                  label="Latitude" 
+                  type="number" 
+                  step="0.01"
+                  value={formData.location.lat}
+                  onChange={(e) => setFormData({...formData, location: {...formData.location, lat: parseFloat(e.target.value)}})}
+                />
+                <Input 
+                  label="Longitude" 
+                  type="number" 
+                  step="0.01"
+                  value={formData.location.lon}
+                  onChange={(e) => setFormData({...formData, location: {...formData.location, lon: parseFloat(e.target.value)}})}
+                />
+              </div>
+              <Button 
+                type="button" 
+                onClick={requestGPS}
+                variant="secondary"
+                className="w-full py-2 text-[8px] tracking-[0.4em] font-black uppercase border-white/10 flex items-center justify-center gap-2"
+              >
+                Pinpoint Field GPS <Navigation size={12} className="text-primary" />
+              </Button>
             </div>
 
             <Button type="submit" className="w-full py-4 text-sm tracking-[0.2em] font-black uppercase" loading={loading}>

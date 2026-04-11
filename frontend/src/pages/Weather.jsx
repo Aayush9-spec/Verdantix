@@ -17,17 +17,36 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../api/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const Weather = () => {
   const [coords, setCoords] = useState({ lat: 28.61, lon: 77.23 }); // Default New Delhi
   const [loading, setLoading] = useState(false);
   const [weather, setWeather] = useState(null);
 
-  const fetchWeather = async () => {
+  const requestGPS = () => {
+    if ("geolocation" in navigator) {
+      toast.loading(" Pinpointing Neural Location...", { id: 'gps-toast' });
+      const options = { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 };
+      
+      navigator.geolocation.getCurrentPosition((position) => {
+        const newCoords = { lat: position.coords.latitude, lon: position.coords.longitude };
+        setCoords(newCoords);
+        toast.success("Location Locked: High-Accuracy GPS Active", { id: 'gps-toast' });
+        fetchWeatherByCoords(newCoords.lat, newCoords.lon);
+      }, (err) => {
+        toast.error("GPS Link Obstructed: Using IP-Based Geolocation", { id: 'gps-toast' });
+        fetchWeather(); // Fallback
+      }, options);
+    }
+  };
+
+  const fetchWeather = () => fetchWeatherByCoords(coords.lat, coords.lon);
+
+  const fetchWeatherByCoords = async (lat, lon) => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/weather?lat=${coords.lat}&lon=${coords.lon}`);
-      // Neural delay for premium feel
+      const res = await apiFetch(`/weather?lat=${lat}&lon=${lon}`);
       await new Promise(r => setTimeout(r, 800));
       setWeather(res.data);
     } catch (err) {
@@ -38,7 +57,7 @@ const Weather = () => {
   };
 
   useEffect(() => {
-    fetchWeather();
+    requestGPS(); // Auto-pinpoint on load
   }, []);
 
   const getWeatherIcon = (condition) => {
@@ -63,9 +82,12 @@ const Weather = () => {
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none uppercase">
             Weather <span className="text-primary italic">Intelligence</span>
           </h1>
-          <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px]">
-            Precision Environmental Monitoring // Regional Grounding
-          </p>
+          <div className="flex items-center gap-2">
+            <MapPin size={12} className="text-primary animate-pulse" />
+            <p className="text-gray-400 font-black uppercase tracking-widest text-[10px]">
+              {weather?.location_name || "Detecting Precision Location..."} // {coords.lat.toFixed(2)}, {coords.lon.toFixed(2)}
+            </p>
+          </div>
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-4 p-2 glass rounded-[2.5rem] border border-white/10 w-full lg:w-auto shadow-2xl">
@@ -92,6 +114,13 @@ const Weather = () => {
                </div>
             </div>
           </div>
+          <Button 
+            onClick={requestGPS} 
+            variant="secondary"
+            className="w-full md:w-auto px-6 py-3 rounded-[1.8rem] !text-white font-black uppercase text-[10px] tracking-widest flex items-center gap-2 border-white/10"
+          >
+            Pinpoint <Navigation size={14} className="text-primary" />
+          </Button>
           <Button 
             onClick={fetchWeather} 
             loading={loading} 

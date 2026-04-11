@@ -8,7 +8,6 @@ import {
   CloudSun, 
   MessageSquare, 
   BarChart3, 
-  Layers,
   Menu,
   X,
   Sparkles,
@@ -89,7 +88,6 @@ const Navbar = () => {
     { to: '/weather', icon: <CloudSun size={18} />, label: 'Weather' },
     { to: '/chat', icon: <MessageSquare size={18} />, label: 'Chat' },
     { to: '/dashboard', icon: <BarChart3 size={18} />, label: 'Stats' },
-    { to: '/simulate', icon: <Layers size={18} />, label: 'Simulate' },
   ];
 
   return (

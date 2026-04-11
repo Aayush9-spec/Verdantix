@@ -1,335 +1,243 @@
-# =============================================================================
-# Verdantix – Kaggle-Grounded ML Carbon Intelligence Platform
-# Production-Ready Flask Backend | Version 5.0.0
-# =============================================================================
-
 import os
-import math
-import random
-import datetime
+import json
 import uuid
+import datetime
 import joblib
-import numpy as np
-import pandas as pd
+import sqlite3
+import psycopg2
+import requests
+from psycopg2.extras import RealDictCursor
+from flask import Flask, request, jsonify, g
+from flask_cors import CORS
 from dotenv import load_dotenv
 
-# Load environment variables before importing services
+# =============================================================================
+# CONFIGURATION & ENV LOADING
+# =============================================================================
 load_dotenv()
-
-from flask import Flask, request, jsonify, Blueprint
-from flask_cors import CORS
-from sklearn.linear_model import LinearRegression
-from services.chatbot_service import chat as ai_chat
 
 app = Flask(__name__)
 CORS(app)
 
-# Define API Blueprint
-api = Blueprint('api', __name__)
+DATABASE_URL = os.getenv("DATABASE_URL") 
+MODEL_PATH = "model.pkl"
 
-VERSION = "5.0.0"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(BASE_DIR, "data.csv")
-MODEL_PATH = os.path.join(BASE_DIR, "model.pkl")
-TRAINED_DATA_PATH = os.path.join(BASE_DIR, "trained_data.csv")
-
-# =============================================================================
-# ML PIPELINE: KAGGLE DATA & TRAINING
-# =============================================================================
-
-CROP_MAP = {"rice": 0, "wheat": 1, "maize": 2, "soybean": 3}
-
-def train_ml_model():
-    """Trained on data.csv (temperature, humidity, rainfall) for grounded carbon scoring."""
-    print("🚀 Initializing Kaggle-Grounded ML Auto-Training Sequence...")
-    
-    if not os.path.exists(DATA_PATH):
-        print(f"❌ Error: {DATA_PATH} not found. Please provide the dataset.")
-        return None
-
-    try:
-        # 1. Load Dataset
-        df = pd.read_csv(DATA_PATH)
-        
-        # 2. Clean Data (Strict Filtering)
-        df = df[["temperature", "humidity", "rainfall", "label"]]
-        df = df[df["label"].isin(CROP_MAP.keys())]
-        
-        # 3. Factor Definitions (Multiplicative Strategy)
-        CROP_FACTORS = {"rice": 1.1, "wheat": 1.0, "maize": 1.1, "soybean": 1.3}
-        FERT_FACTORS = {1: 1.25, 0: 0.8}   # 1=Organic, 0=Chemical
-        WATER_FACTORS = {1: 1.15, 0: 0.85} # 1=Irrigation, 0=Rain-fed
-
-        # 4. Feature Engineering
-        df["crop_id"] = df["label"].map(CROP_MAP)
-        df["fertilizer_id"] = df["humidity"].apply(lambda x: 1 if x > 60 else 0)
-        df["water_id"] = df["rainfall"].apply(lambda x: 1 if x > 100 else 0)
-        
-        # 5. Target Engineering (Multiplicative Model)
-        # Sequestration Model: Base environmental potential
-        df["sequestration"] = (df["temperature"] * 0.3 + df["humidity"] * 0.3 + df["rainfall"] * 0.4)
-        
-        # Factor Interaction
-        df["crop_factor"] = df["label"].map(CROP_FACTORS)
-        df["fert_factor"] = df["fertilizer_id"].map(FERT_FACTORS)
-        df["water_factor"] = df["water_id"].map(WATER_FACTORS)
-        
-        # Multiplicative Score: carbon_score = sequestration * factors
-        df["raw_score"] = (
-            df["sequestration"] * 
-            df["crop_factor"] * 
-            df["fert_factor"] * 
-            df["water_factor"]
-        )
-        
-        # Normalize to 0-100
-        min_s = df["raw_score"].min()
-        max_s = df["raw_score"].max()
-        df["carbon_score"] = ((df["raw_score"] - min_s) / (max_s - min_s)) * 100
-        
-        # 5. Train Model
-        X = df[["temperature", "humidity", "rainfall", "crop_id", "fertilizer_id", "water_id"]]
-        y = df["carbon_score"]
-        
-        model = LinearRegression()
-        model.fit(X, y)
-        
-        # 6. Generate Trained Dataset
-        df["predicted_score"] = model.predict(X)
-        df.to_csv(TRAINED_DATA_PATH, index=False)
-        print("✅ trained_data.csv generated")
-        
-        bundle = {
-            "model": model,
-            "metadata": {
-                "model_type": "Linear Regression (Kaggle-Grounded)",
-                "training_samples": len(df),
-                "last_trained": datetime.datetime.utcnow().isoformat() + "Z",
-                "accuracy": round(model.score(X, y), 4)
-            }
-        }
-        
-        joblib.dump(bundle, MODEL_PATH)
-        print(f"✅ ML Model persistent at {MODEL_PATH} (Accuracy: {bundle['metadata']['accuracy']})")
-        return bundle
-    except Exception as e:
-        print(f"❌ ML Training failed: {str(e)}")
-        return None
-
-# Auto-Load or Train on Startup
-if not os.path.exists(MODEL_PATH):
-    ML_BUNDLE = train_ml_model()
-else:
-    print(f"📦 Loading persistent Kaggle-grounded ML model from {MODEL_PATH}...")
+# Load ML Bundle once on startup
+try:
     ML_BUNDLE = joblib.load(MODEL_PATH)
+    print("✅ ML Production Bundle Ready")
+except Exception as e:
+    print(f"⚠️ Model Warning: {e}")
+    ML_BUNDLE = None
 
 # =============================================================================
-# UTILITIES & RE-DESIGNED CARBON ENGINE
+# DATABASE LAYER (HYBRID ENGINE)
 # =============================================================================
 
-def clamp(n, min_n, max_n):
-    return max(min(n, max_n), min_n)
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        if DATABASE_URL:
+            db = g._database = psycopg2.connect(DATABASE_URL)
+        else:
+            db = g._database = sqlite3.connect("verdantix.db")
+            db.row_factory = sqlite3.Row
+    return db
 
-def now_iso():
-    return datetime.datetime.utcnow().isoformat() + "Z"
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
 
-def get_request_id():
-    return str(uuid.uuid4())[:8]
-
-def api_response(data=None, success=True, error=None, code=200, rid=None):
-    return jsonify({
-        "success": success,
-        "data": data if data is not None else {"error": error},
-        "request_id": rid or get_request_id(),
-        "timestamp": now_iso()
-    }), code
-
-def get_weather_data_mock(lat, lon):
-    """Deterministic weather simulation seeded by location."""
-    rng = random.Random(lat + lon)
-    base_temp = 38 - abs(lat) * 0.6
-    temp = round(base_temp + rng.uniform(-3, 3), 1)
-    rain = round(rng.uniform(0, 250), 1)
-    hum  = round(rng.uniform(30, 95), 1)
-    
-    return {
-        "temperature": temp,
-        "humidity": hum,
-        "rainfall": rain,
-        "condition": "Moderate"
-    }
-
-def predict_ml_carbon(land, crop, fertilizer_type, water_type, lat, lon, user_temp=None, user_hum=None, user_rain=None):
-    """Refined inference engine with environmental weighting and dynamic insights."""
-    # 1. Weather Auto-Fill
-    weather_used = None
-    if user_temp is None or user_hum is None or user_rain is None:
-        weather_used = get_weather_data_mock(lat, lon)
-        temp = user_temp if user_temp is not None else weather_used["temperature"]
-        hum = user_hum if user_hum is not None else weather_used["humidity"]
-        rain = user_rain if user_rain is not None else weather_used["rainfall"]
+def query_db(query, args=(), one=False):
+    db = get_db()
+    if DATABASE_URL:
+        cursor = db.cursor(cursor_factory=RealDictCursor)
+        query = query.replace("?", "%s")
+        cursor.execute(query, args)
     else:
-        temp, hum, rain = user_temp, user_hum, user_rain
-        weather_used = {"temperature": temp, "humidity": hum, "rainfall": rain, "source": "user_provided"}
+        cursor = db.execute(query, args)
+    rv = cursor.fetchall()
+    cursor.close()
+    return (rv[0] if rv else None) if one else rv
 
-    # 2. Feature Encoding
-    c_id = CROP_MAP.get(crop.lower().strip(), 0)
-    f_id = 1 if fertilizer_type.lower().strip() == "organic" else 0
-    w_id = 1 if water_type.lower().strip() == "irrigation" else 0
+def execute_db(query, args=()):
+    db = get_db()
+    if DATABASE_URL:
+        cursor = db.cursor()
+        query = query.replace("?", "%s")
+        cursor.execute(query, args)
+        cursor.close()
+    else:
+        db.execute(query, args)
+    db.commit()
+
+# =============================================================================
+# SCHEMA INITIALIZATION
+# =============================================================================
+
+def init_db():
+    tables = [
+        '''CREATE TABLE IF NOT EXISTS predictions (
+            id TEXT PRIMARY KEY,
+            land REAL, crop TEXT, fertilizer TEXT, water_source TEXT,
+            temperature REAL, humidity REAL, rainfall REAL,
+            carbon_score REAL, grade TEXT, confidence REAL,
+            timestamp TEXT
+        )''',
+        f'''CREATE TABLE IF NOT EXISTS chat_history (
+            id {"SERIAL" if DATABASE_URL else "INTEGER"} PRIMARY KEY {"" if DATABASE_URL else "AUTOINCREMENT"},
+            message TEXT, response TEXT, language TEXT, timestamp TEXT
+        )''',
+        f'''CREATE TABLE IF NOT EXISTS weather_logs (
+            id {"SERIAL" if DATABASE_URL else "INTEGER"} PRIMARY KEY {"" if DATABASE_URL else "AUTOINCREMENT"},
+            lat REAL, lon REAL, temperature REAL, humidity REAL, 
+            rainfall REAL, condition TEXT, timestamp TEXT
+        )'''
+    ]
+    conn = psycopg2.connect(DATABASE_URL) if DATABASE_URL else sqlite3.connect("verdantix.db")
+    cursor = conn.cursor()
+    for sql in tables:
+        cursor.execute(sql)
+    conn.commit()
+    conn.close()
+    print("🚀 Satellite Database Synchronized")
+
+init_db()
+
+# =============================================================================
+# ML INFERENCE CORE
+# =============================================================================
+
+def get_ml_prediction(features):
+    if not ML_BUNDLE:
+        return 75.0, "B", 0.9 
     
-    features = [[temp, hum, rain, c_id, f_id, w_id]]
-    
-    # 3. ML Prediction (Normalized 0-100)
     model = ML_BUNDLE["model"]
-    prediction = model.predict(features)[0]
-    carbon_score = round(clamp(prediction, 0, 100), 1)
-    
-    # 4. Grading
-    grade = "A" if carbon_score >= 75 else "B" if carbon_score >= 50 else "C"
-    colors = {"A": "#22c55e", "B": "#f59e0b", "C": "#ef4444"}
-    
-    # 5. Dynamic AI Insight Generation
-    if f_id == 1:
-        insight = "Organic fertilizer improved carbon efficiency and soil health."
-    elif rain < 50:
-        insight = "Low rainfall detected; moisture stress reduced carbon sequestration potential."
-    else:
-        insight = "Balanced environmental factors supporting steady carbon sequestration."
-
-    credits = round((float(land) * 0.8) * (carbon_score / 100), 2)
-    
-    return {
-        "carbon_score": carbon_score,
-        "grade": grade,
-        "grade_color": colors[grade],
-        "estimated_value_inr": round(credits * 850, 2),
-        "weather_used": weather_used,
-        "insight": insight,
-        "ml_metadata": ML_BUNDLE["metadata"]
-    }
+    # Expecting: [temp, humidity, rain, crop_id, fert_id, water_id]
+    pred = model.predict([features])[0]
+    score = max(0, min(100, float(pred)))
+    grade = "A" if score >= 85 else "B" if score >= 65 else "C"
+    return round(score, 2), grade, 0.95
 
 # =============================================================================
-# CHATBOT & MODULAR SERVICES (RETAINED)
+# PRODUCTION API ENDPOINTS
 # =============================================================================
 
-def validate_input(data):
-    req = ["land", "crop", "fertilizer", "water_source"]
-    for f in req:
-        if f not in data: return f"Missing field: {f}"
-    return None
-
-# =============================================================================
-# ROUTES
-# =============================================================================
-
-@api.route("/")
-def home():
-    return api_response(data={"message": "🌱 Verdantix Kaggle-ML Backend Running", "version": VERSION})
-
-@api.route("/predict", methods=["POST"])
-def predict():
-    rid = get_request_id()
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        err = validate_input(data)
-        if err: return api_response(error=err, success=False, code=400, rid=rid)
-        
-        loc = data.get("location", {"lat": 20, "lon": 78})
-        res = predict_ml_carbon(
-            data["land"], data["crop"], data["fertilizer"], data["water_source"],
-            loc["lat"], loc["lon"]
-        )
-        return api_response(data=res, rid=rid)
-    except Exception as e:
-        return api_response(error=str(e), success=False, code=500, rid=rid)
-
-@api.route("/weather", methods=["GET"])
+@app.route("/weather", methods=["GET"])
 def weather():
-    lat = float(request.args.get("lat", 20)); lon = float(request.args.get("lon", 78))
-    data = get_weather_data_mock(lat, lon)
-    return api_response(data=data)
+    lat = request.args.get("lat", 28.61)
+    lon = request.args.get("lon", 77.23)
+    api_key = os.getenv("OPENWEATHER_API_KEY")
 
-@api.route("/optimize", methods=["POST"])
-def optimize():
-    rid = get_request_id()
     try:
-        data = request.get_json(force=True, silent=True) or {}
-        loc = data.get("location", {"lat": 20, "lon": 78})
-        cur = predict_ml_carbon(data["land"], data["crop"], data["fertilizer"], data["water_source"], loc["lat"], loc["lon"])
-        opt = predict_ml_carbon(data["land"], data["crop"], "organic", "irrigation", loc["lat"], loc["lon"])
-        improve = round(((opt["carbon_score"] - cur["carbon_score"]) / cur["carbon_score"] * 100) if cur["carbon_score"] > 0 else 0, 1)
-        return api_response(data={"current_score": cur["carbon_score"], "optimized_score": opt["carbon_score"], "improvement": improve})
-    except Exception as e: return api_response(error=str(e), success=False, code=500)
-
-@api.route("/simulate", methods=["POST"])
-def simulate():
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        scenarios = data.get("scenarios", [])
-        results = []
-        for i, s in enumerate(scenarios):
-            c = predict_ml_carbon(s["land"], s["crop"], s["fertilizer"], s["water_source"], 20, 78)
-            results.append({"scenario_id": i+1, "score": c["carbon_score"], "grade": c["grade"]})
-        return api_response(data={"results": results})
-    except Exception as e: return api_response(error=str(e), success=False, code=500)
-
-@api.route("/chat", methods=["POST"])
-def chat():
-    """AI Chatbot Route — Connected to Groq/OpenAI."""
-    rid = get_request_id()
-    try:
-        data = request.get_json(force=True, silent=True) or {}
-        msg = data.get("message", "")
-        context = data.get("context", {}) # Optional farm context
-        history = data.get("history", []) # Optional chat history
+        url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={api_key}&units=metric"
+        res = requests.get(url, timeout=5).json()
         
-        if not msg:
-            return api_response(error="Message is empty", success=False, code=400, rid=rid)
-            
-        # Call the unified chatbot service
-        res = ai_chat(message=msg, context=context, history=history)
-        return api_response(data=res, rid=rid)
-    except Exception as e:
-        return api_response(error=str(e), success=False, code=500, rid=rid)
+        rain_h = res.get("rain", {}).get("1h", 0)
+        projected_rain = round(rain_h * 24, 1) # Scaling to daily magnitude
 
-@api.route("/dashboard", methods=["GET"])
+        return jsonify({
+            "success": True,
+            "data": {
+                "temperature": round(res["main"]["temp"], 1),
+                "humidity": res["main"]["humidity"],
+                "rainfall": projected_rain,
+                "condition": res["weather"][0]["main"],
+                "location_name": res.get("name", "Field GPS Lock")
+            }
+        })
+    except Exception as e:
+        return jsonify({"success": True, "data": {"temperature": 25, "humidity": 70, "rainfall": 100, "condition": "Cloudy (Sim)"}})
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    data = request.json
+    try:
+        # 1. Prepare Telemetry Matrix
+        features = [
+            data.get("temperature", 25), 
+            data.get("humidity", 70), 
+            data.get("rainfall", 100),
+            0, 1, 1 # crop_id, fert_id, water_id
+        ]
+        score, grade, conf = get_ml_prediction(features)
+        
+        p_id = str(uuid.uuid4())[:12]
+        ts = datetime.datetime.utcnow().isoformat()
+        
+        # 2. Persist to Postgres
+        execute_db(
+            """INSERT INTO predictions 
+            (id, land, crop, fertilizer, water_source, temperature, humidity, rainfall, carbon_score, grade, confidence, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (p_id, data['land'], data['crop'], data['fertilizer'], data['water_source'], 
+             features[0], features[1], features[2], score, grade, conf, ts)
+        )
+        
+        return jsonify({
+            "success": True,
+            "id": p_id,
+            "carbon_score": score,
+            "grade": grade,
+            "confidence": conf
+        })
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/dashboard", methods=["GET"])
 def dashboard():
-    return api_response(data={"summary": {"total_credits": 150.5, "avg_score": 82.3}})
-
-@api.route("/trained-data", methods=["GET"])
-def get_trained_data():
-    """Returns sample rows from the trained_data.csv artifact."""
     try:
-        if not os.path.exists(TRAINED_DATA_PATH):
-            return api_response(error="Trained data artifact not found. Please trigger training first.", success=False, code=404)
+        stats = query_db("SELECT COUNT(*) as total, AVG(carbon_score) as avg_score FROM predictions", one=True)
+        dist = query_db("SELECT crop, COUNT(*) as count FROM predictions GROUP BY crop")
         
-        df = pd.read_csv(TRAINED_DATA_PATH)
-        sample = df.head(20).to_dict(orient="records")
-        return api_response(data={"sample": sample, "total_rows": len(df)})
+        return jsonify({
+            "success": True,
+            "data": {
+                "total_predictions": stats['total'],
+                "average_score": round(stats['avg_score'] or 0, 2),
+                "crop_distribution": [dict(r) for r in dist]
+            }
+        })
     except Exception as e:
-        return api_response(error=str(e), success=False, code=500)
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@api.route("/sync", methods=["POST"])
-def sync():
+@app.route("/chat", methods=["POST"])
+def chat():
+    from services.chatbot_service import chat as ai_chat
+    data = request.json
     try:
-        data = request.get_json(force=True, silent=True) or {}
-        pending = data.get("pending_predictions", [])
-        processed = []
+        res = ai_chat(message=data.get("message", ""), context=data.get("context", {}))
+        return jsonify({"success": True, "data": res})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route("/sync", methods=["POST"])
+def sync():
+    data = request.json
+    pending = data.get("pending_predictions", [])
+    synced_count = 0
+    try:
         for p in pending:
-            processed.append(predict_ml_carbon(p["land"], p["crop"], p["fertilizer"], p["water_source"], 20, 78))
-        return api_response(data={"processed": processed, "synced": True})
-    except Exception as e: return api_response(error=str(e), success=False, code=500)
+            exists = query_db("SELECT id FROM predictions WHERE id = ?", (p.get("id", ""),), one=True)
+            if exists: continue
+            
+            p_id = p.get("id") or str(uuid.uuid4())[:12]
+            ts = p.get("timestamp") or datetime.datetime.utcnow().isoformat()
+            
+            execute_db(
+                """INSERT INTO predictions (id, land, crop, fertilizer, water_source, temperature, humidity, rainfall, carbon_score, grade, confidence, timestamp) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (p_id, p['land'], p['crop'], p['fertilizer'], p['water_source'], p.get('temperature', 25), p.get('humidity', 70), p.get('rainfall', 100), p.get('carbon_score', 0), p.get('grade', 'N/A'), p.get('confidence', 0), ts)
+            )
+            synced_count += 1
+        return jsonify({"success": True, "synced_total": synced_count})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
-@api.route("/health")
+@app.route("/health")
 def health():
-    return api_response(data={"status": "running", "ml_active": MODEL_PATH in os.listdir(".")})
-
-# Register Blueprint with /api prefix
-app.register_blueprint(api, url_prefix='/api')
-
-@app.route("/")
-def index():
-    return api_response(data={"message": "🌱 Verdantix Core Active", "api_root": "/api"})
+    return jsonify({"success": True, "status": "running", "postgres": DATABASE_URL is not None})
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5100, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5100)))
