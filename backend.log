@@ -1,42 +1,27 @@
-📦 Loading persistent Kaggle-grounded ML model from /Users/aayushkumarsingh/Desktop/agri/model.pkl...
+✅ ML Production Bundle Ready
+⚠️ Postgres connection failed during init. Using SQLite.
+🚀 Satellite Database Synchronized
  * Serving Flask app 'app'
- * Debug mode: off
+ * Debug mode: on
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5100
+ * Running on http://10.21.160.201:5100
 [33mPress CTRL+C to quit[0m
-/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-  return datetime.datetime.utcnow().isoformat() + "Z"
-127.0.0.1 - - [11/Apr/2026 13:26:59] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:26:59] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:01] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:30] "GET /api/dashboard HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:30] "GET /api/dashboard HTTP/1.1" 200 -
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 131-669-237
+/Users/aayushkumarsingh/Desktop/agri/app.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:59:00] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:59:01] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:59:01] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:59:04] "[35m[1mGET /api/dashboard HTTP/1.1[0m" 500 -
+127.0.0.1 - - [11/Apr/2026 13:59:04] "[35m[1mGET /api/dashboard HTTP/1.1[0m" 500 -
 /Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
   warnings.warn(
-/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-  return datetime.datetime.utcnow().isoformat() + "Z"
-127.0.0.1 - - [11/Apr/2026 13:27:37] "POST /api/predict HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:38] "GET /api/dashboard HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:55] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:27:55] "GET /api/health HTTP/1.1" 200 -
-/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
-  warnings.warn(
-/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
-  warnings.warn(
-/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-  return datetime.datetime.utcnow().isoformat() + "Z"
-127.0.0.1 - - [11/Apr/2026 13:28:01] "POST /api/optimize HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:20] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:20] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:25] "GET /api/dashboard HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:25] "GET /api/dashboard HTTP/1.1" 200 -
-/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
-  warnings.warn(
-/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
-  return datetime.datetime.utcnow().isoformat() + "Z"
-127.0.0.1 - - [11/Apr/2026 13:31:30] "POST /api/predict HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:31] "GET /api/dashboard HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:36] "GET /api/weather?lat=28.61&lon=77.23 HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:36] "GET /api/weather?lat=28.61&lon=77.23 HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:37] "GET /api/dashboard HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 13:31:37] "GET /api/dashboard HTTP/1.1" 200 -
+/Users/aayushkumarsingh/Desktop/agri/app.py:228: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  ts = datetime.datetime.utcnow().isoformat() + "Z"
+/Users/aayushkumarsingh/Desktop/agri/app.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:59:09] "[35m[1mPOST /api/predict HTTP/1.1[0m" 500 -

@@ -43,7 +43,14 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
-            db = g._database = psycopg2.connect(DATABASE_URL)
+            try:
+                # Try Postgres (Supabase/Neon)
+                db = g._database = psycopg2.connect(DATABASE_URL, connect_timeout=5)
+                print("🔗 Connected to Production PostgreSQL")
+            except Exception as e:
+                print(f"⚠️ Postgres Connection Failed: {e}. Falling back to SQLite.")
+                db = g._database = sqlite3.connect("verdantix.db")
+                db.row_factory = sqlite3.Row
         else:
             db = g._database = sqlite3.connect("verdantix.db")
             db.row_factory = sqlite3.Row
@@ -102,7 +109,15 @@ def init_db():
         )'''
     ]
     try:
-        conn = psycopg2.connect(DATABASE_URL) if DATABASE_URL else sqlite3.connect("verdantix.db")
+        if DATABASE_URL:
+            try:
+                conn = psycopg2.connect(DATABASE_URL, connect_timeout=5)
+            except Exception:
+                print("⚠️ Postgres connection failed during init. Using SQLite.")
+                conn = sqlite3.connect("verdantix.db")
+        else:
+            conn = sqlite3.connect("verdantix.db")
+            
         cursor = conn.cursor()
         for sql in tables:
             cursor.execute(sql)
