@@ -13,58 +13,74 @@ import {
   X,
   Sparkles,
   Shield,
-  Activity
+  Activity,
+  ArrowRight
 } from 'lucide-react';
+import { 
+  SignedIn, 
+  SignedOut, 
+  UserButton,
+  SignInButton,
+  useUser
+} from '@clerk/clerk-react';
+import toast from 'react-hot-toast';
+import { syncOfflineData } from '../../api/api';
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const location = useLocation();
+  const { user } = useUser();
 
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      performSync();
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    const updatePending = () => {
+    
+    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    // Check pending count
+    const checkPending = () => {
       const pending = JSON.parse(localStorage.getItem('pending') || '[]');
       setPendingCount(pending.length);
     };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    const interval = setInterval(updatePending, 2000);
-
-    updatePending();
+    checkPending();
+    const interval = setInterval(checkPending, 5000);
 
     return () => {
+      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       clearInterval(interval);
     };
   }, []);
 
-  const performSync = async () => {
-    const { syncOfflineData } = await import('../../api/api');
-    setIsSyncing(true);
-    await syncOfflineData();
-    setIsSyncing(false);
-  };
-
   useEffect(() => {
-    // Close menu on route change
     setIsOpen(false);
   }, [location.pathname]);
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const performSync = async () => {
+    if (isSyncing || !isOnline) return;
+    setIsSyncing(true);
+    try {
+      const success = await syncOfflineData();
+      if (success) {
+        toast.success('Intelligence Grid Synced', {
+          style: { background: '#090c10', color: '#10b981', border: '1px solid rgba(16, 185, 129, 0.2)' }
+        });
+        setPendingCount(0);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const navItems = [
     { to: '/', icon: <Home size={18} />, label: 'Home' },
@@ -78,9 +94,9 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
-      scrolled ? 'py-2 px-0' : 'py-6 px-0'
+      scrolled ? 'py-2 px-4' : 'py-6 px-8'
     }`}>
-      <div className="w-full max-w-7xl mx-auto px-6">
+      <div className="max-w-7xl mx-auto">
         <motion.div 
           layout
           className={`glass-nav rounded-[2rem] border border-white/10 px-6 h-16 flex items-center justify-between transition-all duration-500 shadow-2xl relative z-[110]`}
@@ -141,24 +157,49 @@ const Navbar = () => {
           {/* Action Buttons */}
           <div className="hidden lg:flex items-center gap-4">
              <div className="h-4 w-px bg-white/10 mx-2" />
-             <motion.button 
-               whileHover={{ scale: 1.05 }}
-               whileTap={{ scale: 0.95 }}
-               onClick={isOnline ? performSync : null}
-               className={`group flex items-center gap-2 px-6 py-2 rounded-xl transition-all uppercase tracking-widest font-black text-[10px] shadow-2xl ${
-                 !isOnline 
-                 ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
-                 : isSyncing 
-                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                 : 'bg-primary text-black'
-               }`}
-             >
-               <Activity size={12} className={isSyncing ? "animate-spin" : "group-hover:animate-pulse"} />
-               {!isOnline ? 'OFFLINE MODE' : isSyncing ? 'SYNCING...' : 'LIVE SYNCED'}
-               {pendingCount > 0 && (
-                 <span className="ml-1 bg-white/20 px-1.5 rounded-full text-[8px]">{pendingCount}</span>
-               )}
-             </motion.button>
+             
+             <SignedOut>
+               <SignInButton mode="modal">
+                 <motion.button 
+                   whileHover={{ scale: 1.05 }}
+                   whileTap={{ scale: 0.95 }}
+                   className="px-6 py-2 glass-card text-white font-black text-[10px] rounded-xl border border-white/10 hover:border-primary/50 transition-all uppercase tracking-widest"
+                 >
+                   Sign In
+                 </motion.button>
+               </SignInButton>
+             </SignedOut>
+
+             <SignedIn>
+                <div className="flex items-center gap-4">
+                  <UserButton 
+                    appearance={{
+                      elements: {
+                        userButtonAvatarBox: "h-9 w-9 border-2 border-primary/30",
+                        userButtonPopoverCard: "glass border border-white/10 shadow-2xl overflow-hidden",
+                      }
+                    }}
+                  />
+                  <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={isOnline ? performSync : null}
+                    className={`group flex items-center gap-2 px-6 py-2 rounded-xl transition-all uppercase tracking-widest font-black text-[10px] shadow-2xl ${
+                      !isOnline 
+                      ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                      : isSyncing 
+                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      : 'bg-primary text-black'
+                    }`}
+                  >
+                    <Activity size={12} className={isSyncing ? "animate-spin" : "group-hover:animate-pulse"} />
+                    {!isOnline ? 'OFFLINE MODE' : isSyncing ? 'SYNCING...' : 'LIVE SYNCED'}
+                    {pendingCount > 0 && (
+                      <span className="ml-1 bg-white/20 px-1.5 rounded-full text-[8px]">{pendingCount}</span>
+                    )}
+                  </motion.button>
+                </div>
+             </SignedIn>
           </div>
 
           {/* Mobile Toggle */}
@@ -177,7 +218,6 @@ const Navbar = () => {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Backdrop Blur Overlay */}
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -186,7 +226,6 @@ const Navbar = () => {
               className="fixed inset-0 bg-black/60 backdrop-blur-md z-[90] lg:hidden"
             />
             
-            {/* Menu Panel */}
             <motion.div 
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -236,9 +275,29 @@ const Navbar = () => {
                     <Shield size={20} />
                     <span className="text-[10px] font-black uppercase tracking-[0.3em]">Quantum Encrypted Link</span>
                  </div>
-                 <button className="w-full py-5 bg-primary text-black font-black uppercase tracking-widest text-sm rounded-2xl shadow-xl shadow-primary/20">
-                    Enter Protocol
-                 </button>
+                 
+                 <SignedOut>
+                   <SignInButton mode="modal">
+                     <button className="w-full py-5 bg-primary text-black font-black uppercase tracking-widest text-sm rounded-2xl shadow-xl shadow-primary/20">
+                        Sign In
+                     </button>
+                   </SignInButton>
+                 </SignedOut>
+
+                 <SignedIn>
+                   <div className="space-y-4">
+                     <div className="flex items-center gap-4 p-4 glass rounded-2xl border border-white/10">
+                        <UserButton />
+                        <div className="flex flex-col">
+                           <span className="text-[10px] font-black uppercase text-gray-400">Operator</span>
+                           <span className="text-sm font-black text-white truncate max-w-[150px]">{user?.firstName || 'User'}</span>
+                        </div>
+                     </div>
+                     <button className="w-full py-5 bg-primary text-black font-black uppercase tracking-widest text-sm rounded-2xl shadow-xl shadow-primary/20">
+                        Enter Protocol
+                     </button>
+                   </div>
+                 </SignedIn>
               </div>
             </motion.div>
           </>
@@ -247,21 +306,5 @@ const Navbar = () => {
     </nav>
   );
 };
-
-const ArrowRight = ({ size, className }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="3" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M5 12h14M12 5l7 7-7 7" />
-  </svg>
-);
 
 export default Navbar;

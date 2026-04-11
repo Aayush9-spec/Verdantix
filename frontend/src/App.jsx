@@ -6,6 +6,8 @@ import Layout from './components/layout/Layout';
 import { Spinner } from './components/common/UI';
 import { WifiOff } from 'lucide-react';
 
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+
 // Lazy load pages
 const Home = lazy(() => import('./pages/Home'));
 const Predict = lazy(() => import('./pages/Predict'));
@@ -14,6 +16,7 @@ const Weather = lazy(() => import('./pages/Weather'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Simulate = lazy(() => import('./pages/Simulate'));
+const Auth = lazy(() => import('./pages/Auth'));
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -56,12 +59,28 @@ function AnimatedRoutes() {
         <Suspense fallback={<Spinner />}>
           <Routes location={location}>
             <Route path="/" element={<Home />} />
-            <Route path="/predict" element={<Predict />} />
-            <Route path="/optimize" element={<Optimize />} />
-            <Route path="/weather" element={<Weather />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/simulate" element={<Simulate />} />
+            
+            {/* Auth Routes */}
+            <Route path="/sign-in/*" element={<Auth mode="signIn" />} />
+            <Route path="/sign-up/*" element={<Auth mode="signUp" />} />
+
+            {/* Protected Intelligence Routes */}
+            <Route path="/predict" element={<SignedIn><Predict /></SignedIn>} />
+            <Route path="/optimize" element={<SignedIn><Optimize /></SignedIn>} />
+            <Route path="/weather" element={<SignedIn><Weather /></SignedIn>} />
+            <Route path="/chat" element={<SignedIn><Chat /></SignedIn>} />
+            <Route path="/dashboard" element={<SignedIn><Dashboard /></SignedIn>} />
+            <Route path="/simulate" element={<SignedIn><Simulate /></SignedIn>} />
+
+            {/* Redirect unauthenticated users trying to access protected routes */}
+            <Route 
+              path="*" 
+              element={
+                <SignedOut>
+                  <RedirectToSignIn />
+                </SignedOut>
+              } 
+            />
           </Routes>
         </Suspense>
       </motion.div>

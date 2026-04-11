@@ -16,13 +16,16 @@ from dotenv import load_dotenv
 # Load environment variables before importing services
 load_dotenv()
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint
 from flask_cors import CORS
 from sklearn.linear_model import LinearRegression
 from services.chatbot_service import chat as ai_chat
 
 app = Flask(__name__)
 CORS(app)
+
+# Define API Blueprint
+api = Blueprint('api', __name__)
 
 VERSION = "5.0.0"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -219,11 +222,11 @@ def validate_input(data):
 # ROUTES
 # =============================================================================
 
-@app.route("/")
+@api.route("/")
 def home():
     return api_response(data={"message": "🌱 Verdantix Kaggle-ML Backend Running", "version": VERSION})
 
-@app.route("/predict", methods=["POST"])
+@api.route("/predict", methods=["POST"])
 def predict():
     rid = get_request_id()
     try:
@@ -240,13 +243,13 @@ def predict():
     except Exception as e:
         return api_response(error=str(e), success=False, code=500, rid=rid)
 
-@app.route("/weather", methods=["GET"])
+@api.route("/weather", methods=["GET"])
 def weather():
     lat = float(request.args.get("lat", 20)); lon = float(request.args.get("lon", 78))
     data = get_weather_data_mock(lat, lon)
     return api_response(data=data)
 
-@app.route("/optimize", methods=["POST"])
+@api.route("/optimize", methods=["POST"])
 def optimize():
     rid = get_request_id()
     try:
@@ -258,7 +261,7 @@ def optimize():
         return api_response(data={"current_score": cur["carbon_score"], "optimized_score": opt["carbon_score"], "improvement": improve})
     except Exception as e: return api_response(error=str(e), success=False, code=500)
 
-@app.route("/simulate", methods=["POST"])
+@api.route("/simulate", methods=["POST"])
 def simulate():
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -270,7 +273,7 @@ def simulate():
         return api_response(data={"results": results})
     except Exception as e: return api_response(error=str(e), success=False, code=500)
 
-@app.route("/chat", methods=["POST"])
+@api.route("/chat", methods=["POST"])
 def chat():
     """AI Chatbot Route — Connected to Groq/OpenAI."""
     rid = get_request_id()
@@ -289,11 +292,11 @@ def chat():
     except Exception as e:
         return api_response(error=str(e), success=False, code=500, rid=rid)
 
-@app.route("/dashboard", methods=["GET"])
+@api.route("/dashboard", methods=["GET"])
 def dashboard():
     return api_response(data={"summary": {"total_credits": 150.5, "avg_score": 82.3}})
 
-@app.route("/trained-data", methods=["GET"])
+@api.route("/trained-data", methods=["GET"])
 def get_trained_data():
     """Returns sample rows from the trained_data.csv artifact."""
     try:
@@ -306,7 +309,7 @@ def get_trained_data():
     except Exception as e:
         return api_response(error=str(e), success=False, code=500)
 
-@app.route("/sync", methods=["POST"])
+@api.route("/sync", methods=["POST"])
 def sync():
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -317,9 +320,16 @@ def sync():
         return api_response(data={"processed": processed, "synced": True})
     except Exception as e: return api_response(error=str(e), success=False, code=500)
 
-@app.route("/health")
+@api.route("/health")
 def health():
     return api_response(data={"status": "running", "ml_active": MODEL_PATH in os.listdir(".")})
+
+# Register Blueprint with /api prefix
+app.register_blueprint(api, url_prefix='/api')
+
+@app.route("/")
+def index():
+    return api_response(data={"message": "🌱 Verdantix Core Active", "api_root": "/api"})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5100, debug=False, use_reloader=False)
