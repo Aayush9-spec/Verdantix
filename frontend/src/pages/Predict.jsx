@@ -27,6 +27,20 @@ const Predict = () => {
   const [loadingStep, setLoadingStep] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [history, setHistory] = useState([]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, []);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await apiFetch('/dashboard');
+      setHistory(res.data.summary.history || []);
+    } catch (err) {
+      console.error("Failed to load history", err);
+    }
+  };
 
   const steps = [
     "Establishing Neural Uplink...",
@@ -57,13 +71,14 @@ const Predict = () => {
         body: JSON.stringify(formData)
       });
       // Simulate real AI processing time for premium feel
-      await new Promise(r => setTimeout(r, 4500));
+      await new Promise(r => setTimeout(r, 1000));
       
       if (res.offline) {
         setError(res.message);
         setResult(null);
       } else {
         setResult(res.data);
+        fetchHistory(); // Refresh history
       }
     } catch (err) {
       setError(err.message);
@@ -208,7 +223,7 @@ const Predict = () => {
                 <div className="glass-card p-8 flex flex-col items-center justify-center relative overflow-hidden ring-2 ring-white/5">
                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500 mb-2">CARBON EFFICIENCY</p>
                   <div className="text-7xl font-black text-white text-glow-primary">
-                    <AnimatedCounter value={result.carbon_score} />
+                    {result.carbon_score.toFixed(1)}
                   </div>
                   <div className="w-full max-w-[150px] mt-6 bg-white/5 h-1.5 rounded-full overflow-hidden">
                     <motion.div 
@@ -238,7 +253,7 @@ const Predict = () => {
                   <div className="space-y-1">
                     <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Projected Carbon Yield</p>
                     <p className="text-4xl font-black text-white">
-                      ₹<AnimatedCounter value={result.estimated_value_inr} decimals={0} />
+                      ₹{result.estimated_value_inr.toLocaleString()}
                     </p>
                   </div>
                   <div className="flex-grow max-w-md w-full">
@@ -330,6 +345,48 @@ const Predict = () => {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* History Table */}
+      <div className="lg:col-span-12 mt-12 pb-20">
+         <Card title="RECENT NEURAL TELEMETRY" icon={<Layers size={18} />}>
+            <div className="overflow-x-auto">
+               <table className="w-full text-left">
+                  <thead>
+                     <tr className="border-b border-white/5">
+                        <th className="py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Timestamp</th>
+                        <th className="py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Crop</th>
+                        <th className="py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Land</th>
+                        <th className="py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Score</th>
+                        <th className="py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Value (INR)</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                     {history.length > 0 ? history.slice().reverse().map((h) => (
+                        <tr key={h.id} className="group hover:bg-white/5 transition-colors">
+                           <td className="py-4 text-[10px] font-bold text-gray-400 font-mono">
+                             {new Date(h.timestamp).toLocaleTimeString()}
+                           </td>
+                           <td className="py-4">
+                              <span className="px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
+                                 {h.inputs.crop}
+                              </span>
+                           </td>
+                           <td className="py-4 text-xs font-bold text-white tracking-widest">{h.inputs.land} AC</td>
+                           <td className="py-4 text-xs font-bold text-primary italic">{h.results.carbon_score}</td>
+                           <td className="py-4 text-xs font-bold text-white">₹{h.results.estimated_value_inr.toLocaleString()}</td>
+                        </tr>
+                     )) : (
+                        <tr>
+                           <td colSpan="5" className="py-12 text-center text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                             No Telemetry Available
+                           </td>
+                        </tr>
+                     )}
+                  </tbody>
+               </table>
+            </div>
+         </Card>
       </div>
     </div>
   );

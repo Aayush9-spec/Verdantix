@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 
 const Layout = ({ children }) => {
   return (
-    <div className="min-h-screen relative flex flex-col pt-32 pb-12 overflow-x-hidden selection:bg-primary/30 selection:text-white">
+    <div className="min-h-screen relative flex flex-col overflow-x-hidden selection:bg-primary/30 selection:text-white">
       {/* Premium Global Background Architecture */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         {/* Immersive Photo Layer with Subtle Zoom */}
@@ -40,7 +40,7 @@ const Layout = ({ children }) => {
 
       <Navbar />
       
-      <main className="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 w-full">
+      <main className="flex-grow relative z-10 w-full">
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}

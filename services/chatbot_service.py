@@ -1,4 +1,4 @@
-# =============================================================================
+  # =============================================================================
 # AI Chatbot Service — OpenAI + Groq (Dual LLM Support)
 # OpenAI Docs: https://platform.openai.com/docs/api-reference
 # Groq Docs:   https://console.groq.com/docs
@@ -31,7 +31,7 @@ Your expertise:
 Rules:
 1. Keep answers concise (2-4 sentences max unless asked for detail).
 2. Always relate advice back to carbon credits / sustainability.
-3. If the user speaks in Hindi or Hinglish, respond in the same language.
+3. DO NOT use Hinglish. If language is Hindi, use Hindi script exclusively. If English, use English exclusively.
 4. Use simple farmer-friendly language, avoid jargon.
 5. If unsure, say so honestly — don't hallucinate data.
 6. When giving numbers (credits, pricing), clarify they are estimates.
@@ -39,14 +39,14 @@ Rules:
 You have access to the user's farm data if provided in the context."""
 
 
-def chat_with_groq(message: str, context: dict = None, history: list = None) -> dict:
+def chat_with_groq(message: str, context: dict = None, history: list = None, language: str = 'en') -> dict:
     """
     Chat using Groq (FREE tier — llama3/mixtral).
-    Best for hackathon since it's free and fast.
     """
     client = Groq(api_key=GROQ_API_KEY)
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    lang_instruction = "IMPORTANT: You must respond ONLY in Hindi." if language == 'hi' else "IMPORTANT: You must respond ONLY in English."
+    messages = [{"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{lang_instruction}"}]
 
     # Inject farm context if available
     if context:
@@ -77,7 +77,7 @@ def chat_with_groq(message: str, context: dict = None, history: list = None) -> 
     }
 
 
-def chat_with_openai(message: str, context: dict = None, history: list = None) -> dict:
+def chat_with_openai(message: str, context: dict = None, history: list = None, language: str = 'en') -> dict:
     """
     Chat using OpenAI GPT (paid, higher quality).
     """
@@ -87,7 +87,8 @@ def chat_with_openai(message: str, context: dict = None, history: list = None) -
         "Content-Type": "application/json"
     }
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    lang_instruction = "IMPORTANT: You must respond ONLY in Hindi." if language == 'hi' else "IMPORTANT: You must respond ONLY in English."
+    messages = [{"role": "system", "content": f"{SYSTEM_PROMPT}\n\n{lang_instruction}"}]
 
     if context:
         messages.append({
@@ -120,15 +121,15 @@ def chat_with_openai(message: str, context: dict = None, history: list = None) -
     }
 
 
-def chat(message: str, context: dict = None, history: list = None) -> dict:
+def chat(message: str, context: dict = None, history: list = None, language: str = 'en') -> dict:
     """
     Unified chat function — auto-selects Groq (free) or OpenAI.
     """
     try:
         if USE_GROQ:
-            return chat_with_groq(message, context, history)
+            return chat_with_groq(message, context, history, language)
         elif OPENAI_API_KEY:
-            return chat_with_openai(message, context, history)
+            return chat_with_openai(message, context, history, language)
         else:
             return {
                 "reply": "⚠️ No AI provider configured. Please set GROQ_API_KEY or OPENAI_API_KEY in .env",

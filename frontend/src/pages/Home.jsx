@@ -12,6 +12,7 @@ import {
   Globe
 } from 'lucide-react';
 import { Card, Button } from '../components/common/UI';
+import Ticker from '../components/common/Ticker';
 import { apiFetch } from '../api/api';
 
 const Star = ({ className }) => (
@@ -52,10 +53,25 @@ const Home = () => {
   const titleWordsLine1 = ["PRECISION"];
   const titleWordsLine2 = ["AGRI-CARBON"];
 
+  const tickerItems = [
+    { label: "EU ETS Carbon", value: "€85.42", change: "+1.2%" },
+    { label: "Gold Standard", value: "$42.10", change: "-0.5%" },
+    { label: "Verra VCU", value: "$18.90", change: "+4.1%" },
+    { label: "Atmospheric CO2", value: "421.5 ppm", change: "+0.12" },
+    { label: "Global Temp", value: "+1.15°C", change: "+0.02" },
+    { label: "India Agri-Credit", value: "₹950", change: "+15%" },
+  ];
+
   return (
-    <div className="relative z-10 space-y-24 py-16">
+    <div className="relative z-10 space-y-24 pb-24">
+      <Ticker items={tickerItems} />
+      
+      <div className="py-16 space-y-24">
       {/* Hero Section Container */}
-      <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden -mt-32 pt-32">
+      <section 
+        className="relative flex items-center justify-center overflow-hidden"
+        style={{ width: '100%', height: '100vh', left: 0, right: 0, margin: 0, padding: 0 }}
+      >
         {/* Decorative Corner Stars (Abs. positioned relative to section) */}
         <div className="absolute inset-0 z-10 pointer-events-none">
           <Star className="absolute top-20 left-[10%] w-8 h-8 opacity-30" />
@@ -185,7 +201,7 @@ const Home = () => {
       </section>
 
       {/* Feature Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-4">
+      <section className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 px-6">
         {features.map((f, i) => (
           <Card 
             key={f.title}
@@ -207,8 +223,8 @@ const Home = () => {
       </section>
 
       {/* Trust Badge Section */}
-      <section className="pt-12 flex flex-col items-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
-        <p className="text-[10px] font-bold tracking-[0.4em] text-gray-500 uppercase">
+      <section className="max-w-7xl mx-auto pt-12 flex flex-col items-center gap-8 opacity-40 grayscale hover:grayscale-0 transition-all duration-700 px-6">
+        <p className="text-[10px] font-bold tracking-[0.4em] text-gray-500 uppercase text-center">
           Powered by Cutting-Edge ML & Environmental Data
         </p>
         <div className="flex flex-wrap justify-center gap-12 items-center">
@@ -218,6 +234,79 @@ const Home = () => {
           <div className="flex items-center gap-2 font-black text-xl italic text-white/50">WMO INT</div>
         </div>
       </section>
+
+      {/* Deep Insight Section - Adds more scrolling content */}
+      <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          className="space-y-8"
+        >
+          <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white italic">
+            BEYOND <span className="text-primary">SIMPLE</span> TRACKING.
+          </h2>
+          <div className="space-y-4 text-gray-400 leading-relaxed font-medium">
+            <p>
+              Verdantix leverages high-fidelity satellite data and ground-truth sensor networks to build a 
+              hyper-local digital twin of your agricultural ecosystem. Our Kaggle-grounded ML engine
+              doesn't just estimate; it quantifies sequestration with radical transparency.
+            </p>
+            <p>
+              By bridges the gap between traditional farming and high-yield carbon markets, we unlock 
+              new revenue streams for the silent heroes of the Indian soil. Every gram of carbon 
+              captured is now a unit of value recognized across global trading desks.
+            </p>
+          </div>
+          <div className="flex gap-4">
+            <div className="p-4 rounded-xl glass border border-white/5 space-y-2">
+              <div className="text-primary font-black text-2xl">4.2M+</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Hectares Monitored</div>
+            </div>
+            <div className="p-4 rounded-xl glass border border-white/5 space-y-2">
+              <div className="text-primary font-black text-2xl">12k+</div>
+              <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Farmers Onboarded</div>
+            </div>
+          </div>
+        </motion.div>
+        
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.8 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="relative aspect-square rounded-3xl overflow-hidden glass border border-white/10 group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 flex items-center justify-center p-8">
+            <div className="w-full h-full rounded-2xl border border-white/10 flex flex-col items-center justify-center text-center p-8 gap-6 group-hover:bg-white/5 transition-all">
+               <Globe size={80} className="text-primary/40 group-hover:text-primary transition-all duration-500" />
+               <h3 className="text-xl font-black text-white italic">GROUNDED DATA INTEGRITY</h3>
+               <p className="text-xs text-gray-500 font-medium">Auto-syncing with Copernicus Sentinel-2 satellite constellations for real-time verification sequence.</p>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Scrolling Text Banner */}
+      <section className="py-20 relative overflow-hidden bg-primary/5">
+        <div className="flex whitespace-nowrap overflow-hidden">
+          <motion.div 
+            animate={{ x: [0, -1000] }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="flex gap-20 text-[6vw] font-black text-white/5 uppercase italic select-none"
+          >
+            <span>Sustainable Future</span>
+            <span>Carbon Neutral</span>
+            <span>Precision Ag</span>
+            <span>Verdantix Protocol</span>
+            <span>Sustainable Future</span>
+            <span>Carbon Neutral</span>
+            <span>Precision Ag</span>
+            <span>Verdantix Protocol</span>
+          </motion.div>
+        </div>
+      </section>
+      </div>
     </div>
   );
 };

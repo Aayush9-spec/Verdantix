@@ -72,6 +72,25 @@ function AnimatedRoutes() {
 function App() {
   return (
     <Router>
+      <style dangerouslySetInnerHTML={{ __html: `
+        * { 
+          box-sizing: border-box !important; 
+        }
+        html, body { 
+          margin: 0 !important; 
+          padding: 0 !important; 
+          width: 100% !important; 
+          height: 100% !important; 
+          overflow-x: hidden !important; 
+          background: #060e06 !important; 
+        }
+        #root { 
+          width: 100% !important; 
+          min-height: 100vh !important; 
+          display: flex !important;
+          flex-direction: column !important;
+        }
+      `}} />
       <Toaster 
         position="bottom-right"
         toastOptions={{

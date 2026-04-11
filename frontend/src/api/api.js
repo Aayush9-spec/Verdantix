@@ -20,12 +20,14 @@ export const apiFetch = async (endpoint, options = {}) => {
   }
 
   try {
+    const headers = { ...options.headers };
+    if (!options.isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers
     });
 
     const result = await response.json();

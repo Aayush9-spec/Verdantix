@@ -36,32 +36,27 @@ const Dashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const trendData = [
+  const trendData = data?.summary?.history?.map(h => ({
+    name: new Date(h.timestamp).toLocaleDateString([], { month: 'short' }),
+    credits: h.results.carbon_score
+  })) || [
     { name: 'JAN', credits: 45 },
     { name: 'FEB', credits: 52 },
     { name: 'MAR', credits: 48 },
     { name: 'APR', credits: 61 },
-    { name: 'MAY', credits: 55 },
-    { name: 'JUN', credits: 67 },
-    { name: 'JUL', credits: 72 },
-    { name: 'AUG', credits: 68 },
-    { name: 'SEP', credits: 82 },
-    { name: 'OCT', credits: 91 },
-    { name: 'NOV', credits: 88 },
-    { name: 'DEC', credits: 95 },
   ];
 
   const distributionData = [
-    { name: 'Rice', value: 400, color: '#10b981' },
-    { name: 'Wheat', value: 300, color: '#3b82f6' },
-    { name: 'Maize', value: 200, color: '#f59e0b' },
-    { name: 'Other', value: 100, color: '#6366f1' },
+    { name: 'Rice', value: data?.summary?.history?.filter(h => h.inputs.crop?.toLowerCase() === 'rice').length || 1, color: '#10b981' },
+    { name: 'Wheat', value: data?.summary?.history?.filter(h => h.inputs.crop?.toLowerCase() === 'wheat').length || 1, color: '#3b82f6' },
+    { name: 'Maize', value: data?.summary?.history?.filter(h => h.inputs.crop?.toLowerCase() === 'maize').length || 1, color: '#f59e0b' },
+    { name: 'Other', value: data?.summary?.history?.filter(h => !['rice', 'wheat', 'maize'].includes(h.inputs.crop?.toLowerCase())).length || 0, color: '#6366f1' },
   ];
 
   if (loading) return <Spinner />;
 
   return (
-    <div className="relative z-10 space-y-12 py-8">
+    <div className="max-w-7xl mx-auto relative z-10 space-y-12 py-8 px-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
@@ -89,7 +84,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatItem 
           title="Total Sequestration" 
-          value={data?.summary?.total_credits || 1240.5} 
+          value={data?.summary?.total_credits ?? 0} 
           unit="CO2e" 
           icon={<Globe className="text-blue-400" />} 
           trend="+12.4% PERFORMANCE"
@@ -97,7 +92,7 @@ const Dashboard = () => {
         />
         <StatItem 
           title="Efficiency Index" 
-          value={data?.summary?.avg_score || 84.2} 
+          value={data?.summary?.avg_score ?? 0} 
           unit="/ 100" 
           icon={<TrendingUp className="text-primary" />} 
           trend="TOP 5% REGIONAL"
@@ -206,6 +201,33 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
+
+      {/* Live Telemetry Log - Modern Scrolling Text */}
+      <Card title="LIVE TELEMETRY STREAM" icon={<Target size={18} />} className="overflow-hidden">
+        <div className="relative h-48 bg-black/50 rounded-2xl border border-white/5 p-4 overflow-hidden font-mono text-[10px] leading-relaxed">
+           <motion.div 
+             animate={{ y: [0, -400] }}
+             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+             className="space-y-1 text-primary/60"
+           >
+             {[...Array(40)].map((_, i) => {
+                const colors = ['text-primary/60', 'text-blue-400/60', 'text-purple-400/60', 'text-green-400/60'];
+                const color = colors[i % colors.length];
+                return (
+                  <div key={i} className={`flex gap-4 ${color}`}>
+                    <span className="opacity-40">[{new Date().toISOString()}]</span>
+                    <span className="font-bold">SIGNAL_{Math.floor(Math.random() * 9999)}</span>
+                    <span>{i % 2 === 0 ? '✓' : '⚡'} DATA_PACKET_RECEIVED // STATUS: OPTIMAL</span>
+                    <span className="ml-auto opacity-30 italic">LAT: {18.5 + (Math.random() * 5).toFixed(2)} LON: {73.8 + (Math.random() * 5).toFixed(2)}</span>
+                  </div>
+                );
+             })}
+           </motion.div>
+           {/* Ambient Overlay */}
+           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/80 pointer-events-none" />
+           <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.5)] pointer-events-none" />
+        </div>
+      </Card>
     </div>
   );
 };
@@ -217,7 +239,7 @@ const StatItem = ({ title, value, unit, icon, trend, delay }) => (
         <p className="text-[10px] text-gray-500 font-black uppercase tracking-[0.2em] mb-2">{title}</p>
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-black text-white">
-            {typeof value === 'number' ? <AnimatedCounter value={value} /> : value}
+            {value}
           </span>
           <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">{unit}</span>
         </div>

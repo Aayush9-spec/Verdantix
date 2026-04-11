@@ -18,17 +18,29 @@ import { apiFetch } from '../api/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Chat = () => {
-  const [messages, setMessages] = useState([
-    { role: 'bot', content: 'Namaste! I am Verdantix AI. How can I help you navigate your carbon portfolio today?', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem('chat_history_v1');
+    return saved ? JSON.parse(saved) : [
+      { role: 'bot', content: 'Namaste! I am Verdantix AI. How can I help you navigate your carbon portfolio today?', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }
+    ];
+  });
   const [input, setInput] = useState('');
-  const [isHindi, setIsHindi] = useState(false);
+  const [isHindi, setIsHindi] = useState(() => localStorage.getItem('chat_lang') === 'hi');
   const [loading, setLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const scrollRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
+    localStorage.setItem('chat_history_v1', JSON.stringify(messages));
   }, [messages, loading]);
+
+  useEffect(() => {
+    localStorage.setItem('chat_lang', isHindi ? 'hi' : 'en');
+  }, [isHindi]);
 
   const handleSend = async (e) => {
     e.preventDefault();
@@ -46,7 +58,8 @@ const Chat = () => {
         method: 'POST',
         body: JSON.stringify({ 
           message: userMsg,
-          language: isHindi ? 'hi' : 'en'
+          language: isHindi ? 'hi' : 'en',
+          force_language: true // Tell backend to stick to this language
         })
       });
       // Neural delay for premium feel
@@ -65,6 +78,73 @@ const Chat = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const startRecording = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast.error("Your browser does not support voice intelligence.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = isHindi ? 'hi-IN' : 'en-IN';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      setIsRecording(false);
+    };
+
+    recognition.onerror = (event) => {
+      console.error(event.error);
+      setIsRecording(false);
+      toast.error("Vocal capture failed.");
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+    };
+
+    recognition.start();
+  };
+
+  const stopRecording = () => {
+    // browser recognition usually stops automatically on continuous=false
+    setIsRecording(false);
+  };
+
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Image = reader.result;
+      
+      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      setMessages(prev => [...prev, { role: 'user', content: '📎 [Image Attached]', image: base64Image, time }]);
+      setLoading(true);
+
+      try {
+        const res = await apiFetch('/chat-image', {
+          method: 'POST',
+          body: JSON.stringify({ image: base64Image, message: input || "Explain this agricultural image." })
+        });
+        setMessages(prev => [...prev, { role: 'bot', content: res.data.reply, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      } catch (err) {
+        toast.error("Visual analysis protocol failed.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -143,6 +223,9 @@ const Chat = () => {
                               : 'glass border border-white/10 text-gray-200 rounded-bl-none'
                          }`}>
                            <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                           {msg.image && (
+                             <img src={msg.image} alt="User upload" className="mt-4 rounded-xl border border-white/10 max-w-full h-auto" />
+                           )}
                            {msg.role === 'bot' && (
                               <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-10 transition-opacity">
                                 <Sparkles size={48} />
@@ -180,9 +263,28 @@ const Chat = () => {
         {/* Input Control */}
         <div className="p-6 border-t border-white/10 bg-black/20 backdrop-blur-xl">
            <form onSubmit={handleSend} className="relative group">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImageSelect} 
+                className="hidden" 
+                accept="image/*" 
+              />
               <div className="absolute left-4 top-1/2 -translate-y-1/2 flex gap-3 text-gray-500 z-10">
-                 <button type="button" className="hover:text-primary transition-colors"><Paperclip size={18} /></button>
-                 <button type="button" className="hover:text-primary transition-colors"><Mic size={18} /></button>
+                 <button 
+                   type="button" 
+                   onClick={() => fileInputRef.current?.click()}
+                   className="hover:text-primary transition-colors"
+                 >
+                   <Paperclip size={18} />
+                 </button>
+                 <button 
+                    type="button" 
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`transition-colors ${isRecording ? 'text-red-500 animate-pulse' : 'hover:text-primary'}`}
+                 >
+                   <Mic size={18} />
+                 </button>
               </div>
               <input
                 placeholder={isHindi ? "प्रोटोकॉल यहाँ टाइप करें..." : "Initialize neural query..."}

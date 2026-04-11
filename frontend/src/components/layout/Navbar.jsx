@@ -17,20 +17,54 @@ import {
 } from 'lucide-react';
 
 const Navbar = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const handleOnline = () => {
+      setIsOnline(true);
+      performSync();
+    };
+    const handleOffline = () => setIsOnline(false);
+    const updatePending = () => {
+      const pending = JSON.parse(localStorage.getItem('pending') || '[]');
+      setPendingCount(pending.length);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    const interval = setInterval(updatePending, 2000);
+
+    updatePending();
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
   }, []);
+
+  const performSync = async () => {
+    const { syncOfflineData } = await import('../../api/api');
+    setIsSyncing(true);
+    await syncOfflineData();
+    setIsSyncing(false);
+  };
 
   useEffect(() => {
     // Close menu on route change
     setIsOpen(false);
   }, [location.pathname]);
+
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
     { to: '/', icon: <Home size={18} />, label: 'Home' },
@@ -44,9 +78,9 @@ const Navbar = () => {
 
   return (
     <nav className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
-      scrolled ? 'py-2 px-4' : 'py-6 px-8'
+      scrolled ? 'py-2 px-0' : 'py-6 px-0'
     }`}>
-      <div className="max-w-7xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto px-6">
         <motion.div 
           layout
           className={`glass-nav rounded-[2rem] border border-white/10 px-6 h-16 flex items-center justify-between transition-all duration-500 shadow-2xl relative z-[110]`}
@@ -110,10 +144,20 @@ const Navbar = () => {
              <motion.button 
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
-               className="group flex items-center gap-2 px-6 py-2 bg-primary text-black font-black text-[10px] rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-primary/50 transition-all uppercase tracking-widest"
+               onClick={isOnline ? performSync : null}
+               className={`group flex items-center gap-2 px-6 py-2 rounded-xl transition-all uppercase tracking-widest font-black text-[10px] shadow-2xl ${
+                 !isOnline 
+                 ? 'bg-red-500/20 text-red-400 border border-red-500/30' 
+                 : isSyncing 
+                 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                 : 'bg-primary text-black'
+               }`}
              >
-               <Activity size={12} className="group-hover:animate-spin-slow" />
-               Live Sync
+               <Activity size={12} className={isSyncing ? "animate-spin" : "group-hover:animate-pulse"} />
+               {!isOnline ? 'OFFLINE MODE' : isSyncing ? 'SYNCING...' : 'LIVE SYNCED'}
+               {pendingCount > 0 && (
+                 <span className="ml-1 bg-white/20 px-1.5 rounded-full text-[8px]">{pendingCount}</span>
+               )}
              </motion.button>
           </div>
 
