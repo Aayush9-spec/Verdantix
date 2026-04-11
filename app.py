@@ -42,10 +42,12 @@ except Exception as e:
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
+        g._is_postgres = False
         if DATABASE_URL:
             try:
                 # Try Postgres (Supabase/Neon)
                 db = g._database = psycopg2.connect(DATABASE_URL, connect_timeout=5)
+                g._is_postgres = True
                 print("🔗 Connected to Production PostgreSQL")
             except Exception as e:
                 print(f"⚠️ Postgres Connection Failed: {e}. Falling back to SQLite.")
@@ -64,26 +66,46 @@ def close_connection(exception):
 
 def query_db(query, args=(), one=False):
     db = get_db()
-    if DATABASE_URL:
-        cursor = db.cursor(cursor_factory=RealDictCursor)
+    # Driver-aware placeholder conversion
+    if g.get('_is_postgres', False):
         query = query.replace("?", "%s")
-        cursor.execute(query, args)
-    else:
-        cursor = db.execute(query, args)
-    rv = cursor.fetchall()
-    cursor.close()
-    return (rv[0] if rv else None) if one else rv
+    
+    print(f"Executing query [{ 'POSTGRES' if g.get('_is_postgres') else 'SQLITE' }]: {query}")
+    
+    try:
+        if g.get('_is_postgres', False):
+            cursor = db.cursor(cursor_factory=RealDictCursor)
+            cursor.execute(query, args)
+            rv = cursor.fetchall()
+            cursor.close()
+        else:
+            cursor = db.execute(query, args)
+            rv = [dict(row) for row in cursor.fetchall()]
+        return (rv[0] if rv else None) if one else rv
+    except Exception as e:
+        print(f"❌ Query Error: {e}")
+        raise e
 
 def execute_db(query, args=()):
     db = get_db()
-    if DATABASE_URL:
-        cursor = db.cursor()
+    # Driver-aware placeholder conversion
+    if g.get('_is_postgres', False):
         query = query.replace("?", "%s")
-        cursor.execute(query, args)
-        cursor.close()
-    else:
-        db.execute(query, args)
-    db.commit()
+    
+    print(f"Executing update [{ 'POSTGRES' if g.get('_is_postgres') else 'SQLITE' }]: {query}")
+    
+    try:
+        if g.get('_is_postgres', False):
+            cursor = db.cursor()
+            cursor.execute(query, args)
+            cursor.close()
+        else:
+            db.execute(query, args)
+        db.commit()
+    except Exception as e:
+        print(f"❌ Execution Error: {e}")
+        db.rollback()
+        raise e
 
 # =============================================================================
 # SCHEMA INITIALIZATION

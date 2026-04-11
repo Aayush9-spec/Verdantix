@@ -25,3 +25,25 @@
 /Users/aayushkumarsingh/Desktop/agri/app.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
   "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
 127.0.0.1 - - [11/Apr/2026 13:59:09] "[35m[1mPOST /api/predict HTTP/1.1[0m" 500 -
+/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
+  warnings.warn(
+/Users/aayushkumarsingh/Desktop/agri/app.py:228: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  ts = datetime.datetime.utcnow().isoformat() + "Z"
+/Users/aayushkumarsingh/Desktop/agri/app.py:144: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "timestamp": datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:59:11] "[35m[1mPOST /api/predict HTTP/1.1[0m" 500 -
+ * Detected change in '/Users/aayushkumarsingh/Desktop/agri/app.py', reloading
+✅ ML Production Bundle Ready
+⚠️ Postgres connection failed during init. Using SQLite.
+🚀 Satellite Database Synchronized
+⚠️ Postgres Connection Failed: invalid dsn: invalid URI query parameter: "pgbouncer"
+. Falling back to SQLite.
+⚠️ Postgres Connection Failed: invalid dsn: invalid URI query parameter: "pgbouncer"
+. Falling back to SQLite.
+⚠️ Postgres Connection Failed: invalid dsn: invalid URI query parameter: "pgbouncer"
+. Falling back to SQLite.
+⚠️ Postgres Connection Failed: invalid dsn: invalid URI query parameter: "pgbouncer"
+. Falling back to SQLite.
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 131-669-237
