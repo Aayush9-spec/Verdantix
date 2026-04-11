@@ -6,6 +6,37 @@
 [33mPress CTRL+C to quit[0m
 /Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
   return datetime.datetime.utcnow().isoformat() + "Z"
-127.0.0.1 - - [11/Apr/2026 10:36:58] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 10:36:58] "GET /api/ HTTP/1.1" 200 -
-127.0.0.1 - - [11/Apr/2026 10:36:58] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:26:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:26:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:01] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:30] "GET /api/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:30] "GET /api/dashboard HTTP/1.1" 200 -
+/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
+  warnings.warn(
+/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:27:37] "POST /api/predict HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:38] "GET /api/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:55] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:27:55] "GET /api/health HTTP/1.1" 200 -
+/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
+  warnings.warn(
+/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
+  warnings.warn(
+/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:28:01] "POST /api/optimize HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:25] "GET /api/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:25] "GET /api/dashboard HTTP/1.1" 200 -
+/Users/aayushkumarsingh/Desktop/agri/.venv/lib/python3.14/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LinearRegression was fitted with feature names
+  warnings.warn(
+/Users/aayushkumarsingh/Desktop/agri/app.py:134: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  return datetime.datetime.utcnow().isoformat() + "Z"
+127.0.0.1 - - [11/Apr/2026 13:31:30] "POST /api/predict HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:31] "GET /api/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:36] "GET /api/weather?lat=28.61&lon=77.23 HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:36] "GET /api/weather?lat=28.61&lon=77.23 HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:37] "GET /api/dashboard HTTP/1.1" 200 -
+127.0.0.1 - - [11/Apr/2026 13:31:37] "GET /api/dashboard HTTP/1.1" 200 -
