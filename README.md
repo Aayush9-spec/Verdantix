@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white"/>
   <img src="https://img.shields.io/badge/Flask-Backend-000000?style=flat-square&logo=flask&logoColor=white"/>
   <img src="https://img.shields.io/badge/React-Frontend-61DAFB?style=flat-square&logo=react&logoColor=black"/>
-  <img src="https://img.shields.io/badge/scikit--learn-ML_Pipeline-F7931E?style=flat-square&logo=scikitlearn&logoColor=white"/>
+  <img src="https://img.shields.io/badge/scikit--learn-ML_Pipeline-F7931E?style=flat-square&logo=scikitlearn&logoColor=white"/> 
   <img src="https://img.shields.io/badge/Groq_|_OpenAI-LLM-412991?style=flat-square&logo=openai&logoColor=white"/>
   <img src="https://img.shields.io/badge/Version-4.0.0-22c55e?style=flat-square"/>
 </p>
