@@ -1,7 +1,7 @@
 <p align="center">
   <img src="" alt="Verdantix" height="40"/>
 </p>
-
+ 
 <h1 align="center">Verdantix</h1>
 <h3 align="center">🧠 AI-Powered Carbon Intelligence for Indian Farmers</h3>
 
