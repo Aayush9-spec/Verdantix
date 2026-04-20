@@ -1,7 +1,7 @@
 const BASE_URL = '/api';
 
 /**
- * Enhanced Fetch wrapper with offline support
+ * Enhanced Fetch wrapper with offline support and Safe-Parsing logic
  */
 export const apiFetch = async (endpoint, options = {}) => {
   // Check if online
@@ -30,9 +30,18 @@ export const apiFetch = async (endpoint, options = {}) => {
       headers
     });
 
-    const result = await response.json();
+    // CRITICAL: Safe JSON Parsing
+    const text = await response.text();
+    let result;
+    try {
+        result = JSON.parse(text);
+    } catch (e) {
+        console.error("Malformed Response:", text);
+        throw new Error("Server sent invalid data. Check Render logs.");
+    }
+
     if (!response.ok) {
-      throw new Error(result.data?.error || result.error || 'Something went wrong');
+      throw new Error(result.data?.error || result.error || 'Production API Error');
     }
     return result;
   } catch (err) {
@@ -42,7 +51,7 @@ export const apiFetch = async (endpoint, options = {}) => {
 };
 
 /**
- * Sync offline data
+ * Global Metadata Sync
  */
 export const syncOfflineData = async () => {
   const pending = JSON.parse(localStorage.getItem('pending') || '[]');
@@ -57,16 +66,14 @@ export const syncOfflineData = async () => {
 
     if (res.ok) {
       localStorage.removeItem('pending');
-      console.log('✅ Offline data synced successfully');
       return true;
     }
   } catch (err) {
-    console.error('❌ Sync failed:', err);
+    console.error('❌ Cloud Sync failed:', err);
   }
   return false;
 };
 
-// Auto-sync listener
 if (typeof window !== 'undefined') {
   window.addEventListener('online', syncOfflineData);
 }

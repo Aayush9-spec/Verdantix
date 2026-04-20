@@ -1,0 +1,9 @@
+{
+  "land": 5,
+  "crop": "wheat",
+  "fertilizer": "organic",
+  "water_source": "irrigation",
+  "temperature": 28,
+  "humidity": 60,
+  "rainfall": 120
+}

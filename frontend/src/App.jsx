@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
+
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster, toast } from 'react-hot-toast';
 import Layout from './components/layout/Layout';
@@ -16,6 +17,16 @@ const Weather = lazy(() => import('./pages/Weather'));
 const Chat = lazy(() => import('./pages/Chat'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Auth = lazy(() => import('./pages/Auth'));
+
+const AppLayout = ({ children }) => {
+  const location = useLocation();
+  const isAuthPage = location.pathname.includes('/sign');
+  
+  if (isAuthPage) {
+    return <div className="h-screen w-screen overflow-hidden bg-black">{children}</div>;
+  }
+  return <Layout>{children}</Layout>;
+};
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -57,7 +68,13 @@ function AnimatedRoutes() {
       >
         <Suspense fallback={<Spinner />}>
           <Routes location={location}>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={
+              <>
+                <SignedIn><Home /></SignedIn>
+                <SignedOut><Navigate to="/sign-in" /></SignedOut>
+              </>
+
+            } />
             
             {/* Auth Routes */}
             <Route path="/sign-in/*" element={<Auth mode="signIn" />} />
@@ -75,9 +92,10 @@ function AnimatedRoutes() {
               path="*" 
               element={
                 <SignedOut>
-                  <RedirectToSignIn />
+                  <Navigate to="/sign-in" />
                 </SignedOut>
               } 
+
             />
           </Routes>
         </Suspense>
@@ -120,9 +138,10 @@ function App() {
           }
         }}
       />
-      <Layout>
+
+      <AppLayout>
         <AnimatedRoutes />
-      </Layout>
+      </AppLayout>
     </Router>
   );
 }
